@@ -1,0 +1,60 @@
+{% comment %}
+    Renders a product card using "Grid" style
+    Accepts:
+    - max_height: {Number} Maximum height of the product's image (required)
+    - product: {Object} Product Liquid object (required)
+    - show_vendor: {Boolean} Show the product's vendor depending on the section setting (optional)
+
+    Usage:
+    {% include 'product-card-grid', max_height: max_height, product: product, show_vendor: section.settings.show_vendor %}
+{% endcomment %}
+
+   	   <div class="productBlock">
+			<a href="{{product.url}}"><div class="productBox">
+				<div class="productImage" style="background:url('{{ product | img_url: '450x450' }}'); background-position: center center; background-size: contain; background-repeat: no-repeat;"><img src="https://cdn.shopify.com/s/files/1/0560/7233/9639/files/square.png?v=1621561418"/></div>
+				<div class="productInfo">
+					<div class="productType">{{product.type}}</div>
+					<div class="productTitle">{{product.title}}</div>
+					<div class="productPrice">
+					{% if product.compare_at_price > 0 %}
+                      <span style="text-decoration: line-through;">{{product.compare_at_price | money_with_currency}}</span>&nbsp;
+                      <span style="color: #f00;">
+                    {% else %}
+                      <span>
+                    {% endif %}
+					  {{product.price | money_with_currency }}
+                      </span>
+                    </div>
+				</div>
+			</div></a>
+{% if product.type == 'Original Art' %}
+         <a href="{{product.url}}"><div class="productCart">MORE INFO</div></a>
+{% else %}
+  {% if product.tags contains 'Waiting List' %}
+         <a href="{{product.url}}"><div class="productCart">COMING SOON</div></a>
+
+  {% else %}
+  	{% if product.available == false %}
+         <div class="productCart productCartButtonOOS">OUT OF STOCK</div>
+     {% else %}
+
+         
+         <form method="post" action="/cart/add" id="product_form_{{product.id}}" accept-charset="UTF-8" class="" enctype="multipart/form-data" novalidate="novalidate" data-product-form="">
+                  <input type="hidden" name="form_type" value="product"><input type="hidden" name="utf8" value="✓">
+                  <button type="submit" name="add" aria-label="Add to cart" class="productCart" style="border: 0px;" aria-haspopup="dialog" data-add-to-cart="">
+              <select name="id" id="ProductSelect-{{ section.id }}" class="product-form__variants no-js">
+                {% for variant in product.variants %}
+                  <option value="{{ variant.id }}"
+                    {%- if variant == current_variant %} selected="selected" {%- endif -%}
+                  >
+                    {{ variant.title }}  {%- if variant.available == false %} - {{ 'products.product.sold_out' | t }}{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+                  <div>ADD TO CART</div>
+                  </button>
+           </form>
+	  {% endif %}
+  {% endif %}
+{% endif %}
+</div>

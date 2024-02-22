@@ -1,0 +1,345 @@
+
+  {% comment %}
+    Get first variant, or deep linked one
+  {% endcomment %}
+  {%- assign current_variant = product.selected_or_first_available_variant -%}
+  {%- assign product_image_zoom_size = '1024x1024' -%}
+  {%- assign product_image_scale = '2' -%}
+  {%- assign enable_image_zoom = section.settings.enable_image_zoom -%}
+  {%- assign compare_at_price = current_variant.compare_at_price -%}
+  {%- assign price = current_variant.price -%}
+
+  {% case section.settings.media_size %}
+    {% when 'small' %}
+      {%- assign product_media_width = 'medium-up--one-third' -%}
+      {%- assign product_description_width = 'medium-up--two-thirds' -%}
+      {%- assign height = 345 -%}
+    {% when 'medium' %}
+      {%- assign product_media_width = 'medium-up--one-half' -%}
+      {%- assign product_description_width = 'medium-up--one-half' -%}
+      {%- assign height = 530 -%}
+    {% when 'large' %}
+      {%- assign product_media_width = 'medium-up--two-thirds' -%}
+      {%- assign product_description_width = 'medium-up--one-third' -%}
+      {%- assign height = 720 -%}
+    {% when 'full' %}
+      {%- assign product_media_width = '' -%}
+      {%- assign product_description_width = '' -%}
+      {%- assign height = 1090 -%}
+      {%- assign enable_image_zoom = false -%}
+  {% endcase %}
+{% if content_for_header contains '?variant=' %}
+  {% assign current_variant = content_for_header| split:'?variant=' | last | split:'"' | first | replace:'\/','/' | 
+   replace:'%20',' ' | 
+   replace:'\u0026','&'%}
+
+{% else %}
+  {% assign current_variant = '' %}
+  {% for variant in product.variants %}
+      {% if variant.inventory_quantity  > 0 %}
+	      {% if current_variant == '' %}
+			  {% assign current_variant = variant.title %}
+   	      {% endif %}                                                        
+      {% endif %}                                                        
+  {% endfor %}                  
+{% endif %}
+
+{% if current_variant contains '&' %}
+	{% assign temp = current_variant | split: "&" %}
+	{% assign current_variant = temp | slice 0, 0 %} 
+	{% assign current_variant = current_variant split: "&" | first %}
+{% endif %}
+<style>
+  .productThumbnail {float: left; width: 70px; margin-top: 4px; margin-right: 8px;}
+  .productThumbnail img {width: 100%;}
+</style>
+
+<div id="overlay" onclick="overlay();""></div>
+<div class="content" style="margin-top: -50px;">
+	<center>
+	<div class="contentInner">
+      <div class="productView" style="position: relative;">
+<div class="breadcrumbs">
+  <a href="/">Home</a>{% for collection in product.collections %}&nbsp;&#xbb;&nbsp;<a href="{{collection.url}}">{{ collection.title }}</a>{% endfor %}
+</div>
+			<div id="lightbox" onclick="overlay();">
+				<div class="lightboxClose">close</div>
+				<img id="lightboxImg" src="{{ product | img_url: product_image_zoom_size }}"/>
+			</div>
+			<div class="productViewImage">
+	            {% if product.has_only_default_variant %}
+				<img id="productImg" src="{{ product | img_url: '600x' }}"  onclick="zoomImage('{{ product | img_url: product_image_zoom_size }}');"/>
+				{% else %}
+				{% if product.available == false %}
+				<img id="productImg" src="{{ product | img_url: '600x' }}"  onclick="zoomImage('{{ product | img_url: product_image_zoom_size }}');"/>
+				{% else %}
+                                                                                                                                                    
+					{% for variant in product.variants %}
+						{% if variant.title == current_variant %}                                                                                                         
+				<img id="productImg" src="{{ variant.image | img_url: '600x' }}"  onclick="zoomImage('{{ product | img_url: product_image_zoom_size }}');"/>
+						{% endif %}                                                                                                                   
+					{% endfor %}                  
+				{% endif %}                                                                                                                                                    
+				{% endif %}                                                                                                                                                    
+{% if product.media.size > 1 %}
+<div class="productThumbnails">
+{% for media in product.media offset:1 %}
+<div class="productThumbnail">
+	<img id="productThumb{{forloop.index}}" src="{{ media | img_url: product_image_zoom_size }}"  onclick="zoomImage('{{ media | img_url: product_image_zoom_size }}','Y');"/>
+</div>
+{% endfor %}
+{% for media in product.media limit:1 %}
+<div class="productThumbnail">
+	<img id="productThumb{{forloop.index}}" src="{{ media | img_url: product_image_zoom_size }}"  onclick="zoomImage('{{ media | img_url: product_image_zoom_size }}','Y');"/>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+			</div>
+			<form method="post" action="/cart/add" id="product_form_{{product.id}}" accept-charset="UTF-8" class="" enctype="multipart/form-data" novalidate="novalidate" data-product-form="">
+			<div class="productViewInfo">
+				<div class="productViewType">{{product.type}}</div>
+				<div class="productViewTitle">{{product.title}}</div>
+            {% if product.has_only_default_variant %}
+        
+                <div class="productPrice productViewPrice">
+                {% if product.compare_at_price > 0 %}
+				<span style="text-decoration: line-through;">{{product.compare_at_price | money_with_currency }}</span>&nbsp;&nbsp;
+    			<span style="color: #f00">
+                {% else %}                        
+    			<span>
+				{% endif %}                                                        
+                                         {{product.price | money_with_currency }}</span>
+			    </div>
+            {% else %}
+			<div id="priceList" class="productPrice productViewPrice">{% for variant in product.variants %}{% if variant.inventory_quantity  > 0 %}{{variant.price | money_with_currency }}{% if forloop.first == last %}{% else %} /{% endif %}{% endif %}{% endfor %}</div>                                             
+<script>
+var html = $("#priceList").html();
+                         if(html.slice(-2) == " /"){
+	var newPrice = html.substring(0, html.length - 2);
+                             $("#priceList").html(newPrice);
+}
+</script>
+			{% endif %}
+              {% comment %} Wait.li Button 1/4 {% endcomment %}{% capture 'wait_li_capture' %}{% render 'wait_li_config' %}{% endcapture %}{%- assign wait_li_capture_results = wait_li_capture | split: '|' -%}{%- assign wait_li_active = wait_li_capture_results[0] | strip -%}{%- assign show_waiting_snippet = wait_li_capture_results[1] | strip -%}{%- assign is_customer = wait_li_capture_results[2] | strip -%}{%- assign customer_status = wait_li_capture_results[3] | strip -%}{% if wait_li_active == 'true' and show_waiting_snippet == 'true' %}{% render 'wait_li_button', is_customer: is_customer, customer_status: customer_status %}{% else %}{% comment %} Wait.li Button 2/4 {% endcomment %}
+            {% if product.has_only_default_variant %}
+            <select name="id" id="ProductSelect-{{ section.id }}" class="product-form__variants no-js">
+              {% for variant in product.variants %}
+                <option value="{{ variant.id }}"
+                  {%- if variant == current_variant %} selected="selected" {%- endif -%}
+                >
+                  {{ variant.title }}  {%- if variant.available == false %} - {{ 'products.product.sold_out' | t }}{% endif %}
+                </option>
+              {% endfor %}
+            </select>
+                                                
+              <div class="productPrice productViewPrice" style="display: none;">{{product.price | money_with_currency }}</div>
+            {% else %}
+				<input type="hidden" name="form_type" value="product"><input type="hidden" name="utf8" value="✓">
+{% if product.available == true %}                                                                                                                
+              <div class="productViewOptions">
+
+					 <select name="id" id="ProductSelect-" class="" onchange="chooseVariant(this.value);">
+					{% for variant in product.variants %}
+						{% if variant.inventory_quantity  > 0 %}                                                                                                         
+                        <option value="{{variant.id}}"{% if current_variant == variant.title %} selected="selected"{% endif %}>{{variant.price | money_with_currency}} {{ variant.title }}</option>
+						{% endif %}                                                                                                                   
+					{% endfor %}                  
+					</select>
+                                                                                                                   </div>
+{% endif %}                                                                                                                   
+            {% endif %}
+				<div class="productViewCart">
+			{% if product.type == "Original Art" %}
+                  <div class="productCart" style="border: 0px;">
+                    <div onclick="inquire({{product.id}});" id="productCart{{product.id}}">INQUIRE TO BUY</div>
+                    <div class="buyForm" id="buyForm{{product.id}}"><div class="buyClose" onclick="$('.buyForm').css('display','none');">x</div>
+                    Please enter your name and e-mail address to let us know you are interested in buying this original artwork, and one of our representatives will contact you to discuss the details of the sale.<br/>
+                    <input type="text" id="buyName{{product.id}}" autofill="off"/><br/>
+                    <div class="buyLabel">Name</div>
+                    <input type="text" id="buyEmail{{product.id}}" autofill="off"/><br/>
+                    <div class="buyLabel">Email</div>
+                    <div class="productCart" onclick="submitInquiry('{{product.id}}')">Submit</div>
+                    </div>
+                    <input type="hidden" id="buyTitle{{product.id}}" value="{{product.title}}"/>
+                    <input type="hidden" id="buySku{{product.id}}" value="{{product.url}}"/>
+                  </div>
+            {% else %}
+				{% if product.available == false %}
+                  <div class="oos">This item is currently out of stock.</div>
+                  {% else %}
+                  <button type="submit" name="add" aria-label="Add to cart" class="productCart" style="border: 0px;" aria-haspopup="dialog" data-add-to-cart="">
+                  <div>ADD TO CART</div>
+				</button>
+				{% endif %}
+                  {% endif %}
+              </div>
+              	{% comment %} Wait.li Button 3/4 {% endcomment %}{% endif %}{% comment %} Wait.li End 4/4 {% endcomment %}
+
+                <div class="productViewDesc">
+                  <p>{{product.description}}</p>
+				</div>				
+			</div>
+			</form>
+		</div>
+
+      {% section 'product-recommendations' %}
+		{% include 'shop-collections' %}
+
+		<div style="width: 100%; foat: left; clear: both;"></div>
+	</div>
+	</center>
+</div>
+<script>
+function inquire(id){
+  if($("#productCart" + id).html() == 'INQUIRE TO BUY'){
+    $("#buyForm" + id).css('display','block');
+    $("#buyName" + id).select();
+  }
+}  
+
+function submitInquiry(id){
+  if($("#buyName" + id).val() == ''){
+    $("#buyName" + id).select();
+  } else if($("#buyEmail" + id).val() == ''){
+    $("#buyEmail" + id).select();
+  } else {
+    var theURL = 'https://squaredradicals.com/alexrossart/inquiry.php?name=' + encodeURIComponent($("#buyName" + id).val()) + '&email=' + encodeURIComponent($("#buyEmail" + id).val()) + '&id=' + id + '&sku=' + encodeURIComponent($("#buySku" + id).val()) + '&title=' + encodeURIComponent($("#buyTitle" + id).val());
+    getJSON(theURL,id);
+  }    
+}
+  
+function getJSON(url,id){
+	$.ajax({type: 'GET', url: url, async: false, jsonpCallback: 'jsonCallback', contentType: "application/json", dataType: 'jsonp', timeout: 5000, cache: false,
+    	success: function(json){
+			$("#productCart" + id).html('INQUIRY SENT');
+			$(".buyForm").css('display','none');
+		},
+    	error: function(e,i,k) {alert(e + i + k);}
+    });
+}
+
+  window.variants = {"variants":[
+{% for variant in product.variants %}
+	{"id":"{{variant.id | escape }}","img":"{{variant.image | img_url: '600x'}}","zoom":"{{variant.image | img_url: product_image_zoom_size}}"},
+    {% endfor %}
+     ]};
+    function chooseVariant(value){
+    $.each(window.variants.variants, function(k,item){
+	    if(item.id == value){
+			$("#productImg").attr("src",item.img);
+			$("#lightboxImg").attr("src",item.zoom);
+		}
+    });
+    }
+</script>
+              
+
+
+
+
+
+{% unless product == empty %}
+  <script type="application/json" id="ProductJson-{{ section.id }}">
+    {{ product | json }}
+  </script>
+  <script type="application/json" id="ModelJson-{{ section.id }}">
+    {{ product.media | where: 'media_type', 'model' | json }}
+  </script>
+{% endunless %}
+
+{% if collection %}
+  <div class="text-center return-link-wrapper page-width">
+    <a href="{{ collection.url }}" class="btn btn--secondary btn--has-icon-before return-link">
+      {% include 'icon-arrow-left' %}
+      {{ 'products.product.back_to_collection' | t: title: collection.title }}
+    </a>
+  </div>
+{% endif %}
+
+<script>
+//  if($("#productImg").height()/$("#productImg").width() < .67 && $("#productImg").height() > 0){
+//    var margin = ($("#productImg").width()/.67 - $("#productImg").height())/2;
+//    $("#productImg").css('margin-top',margin + 'px');
+//  }
+</script>
+
+<script>
+  // Override default values of shop.strings for each template.
+  // Alternate product templates can change values of
+  // add to cart button, sold out, and unavailable states here.
+  theme.productStrings = {
+    addToCart: {{ 'products.product.add_to_cart' | t | json }},
+    soldOut: {{ 'products.product.sold_out' | t | json }},
+    unavailable: {{ 'products.product.unavailable' | t | json }}
+  }
+</script>
+
+{% assign current_variant = product.selected_or_first_available_variant %}
+
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org/",
+  "@type": "Product",
+  "name": {{ product.title | json }},
+  "url": {{ shop.url | append: product.url | json }},
+  {%- if product.featured_media -%}
+    {%- assign media_size = product.featured_media.preview_image.width | append: 'x' -%}
+    "image": [
+      {{ product.featured_media | img_url: media_size | prepend: "https:" | json }}
+    ],
+  {%- endif -%}
+  "description": {{ product.description | strip_html | json }},
+  {%- if current_variant.sku != blank -%}
+    "sku": {{ current_variant.sku | json }},
+  {%- endif -%}
+  "brand": {
+    "@type": "Thing",
+    "name": {{ product.vendor | json }}
+  },
+  "offers": [
+    {%- for variant in product.variants -%}
+      {
+        "@type" : "Offer",
+        {%- if variant.sku != blank -%}
+          "sku": {{ variant.sku | json }},
+        {%- endif -%}
+        "availability" : "http://schema.org/{% if variant.available %}InStock{% else %}OutOfStock{% endif %}",
+        "price" : {{ variant.price | divided_by: 100.00 | json }},
+        "priceCurrency" : {{ cart.currency.iso_code | json }},
+        "url" : {{ shop.url | append: variant.url | json }}
+      }{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+  ]
+}
+</script>
+{%comment%}  Klaviyo Code {%endcomment%}
+<script type="text/javascript">
+  var _learnq = _learnq || [];
+
+  var item = {
+    Name: {{ product.title|json }},
+    ProductID: {{ product.id|json }},
+    Categories: {{ product.collections|map:'title'|json }},
+    ImageURL: "https:{{ product.featured_image.src|img_url:'grande' }}",
+    URL: "{{ shop.secure_url }}{{ product.url }}",
+    Brand: {{ product.vendor|json }},
+    Price: {{ product.price|money|json }},
+    CompareAtPrice: {{ product.compare_at_price_max|money|json }}
+  };
+
+  _learnq.push(['track', 'Viewed Product', item]);
+  _learnq.push(['trackViewedItem', {
+    Title: item.Name,
+    ItemId: item.ProductID,
+    Categories: item.Categories,
+    ImageUrl: item.ImageURL,
+    Url: item.URL,
+    Metadata: {
+      Brand: item.Brand,
+      Price: item.Price,
+      CompareAtPrice: item.CompareAtPrice
+    }
+  }]);
+</script>
